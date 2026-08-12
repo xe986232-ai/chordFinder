@@ -304,20 +304,6 @@
     background: var(--accent);
   }
   .bpm-badge .bpm-unit { color: var(--text-dim); font-weight: 500; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
-  .bpm-input {
-    width: 32px;
-    border: none;
-    background: transparent;
-    color: var(--accent);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 0;
-    outline: none;
-    -moz-appearance: textfield;
-  }
-  .bpm-input::-webkit-outer-spin-button,
-  .bpm-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
   /* --- Diagram chord (gitar/piano, alternating slide) --- */
   .diagram-head {
@@ -733,10 +719,7 @@
         <span id="transposeVal">0</span>
         <button id="transUp">+</button>
       </div>
-      <span class="bpm-badge" id="bpmBadge" style="display:none" title="Tempo yang dipakai buat posisi bar/beat di file MIDI. Kalau piano roll di DAW masih meleset, koreksi angkanya di sini.">
-        <input type="number" id="bpmInput" class="bpm-input" min="40" max="220" step="1" />
-        <span class="bpm-unit">bpm</span>
-      </span>
+      <span class="bpm-badge" id="bpmBadge" style="display:none"></span>
       <span class="chord-count" id="chordCount"></span>
     </div>
 
@@ -812,13 +795,6 @@ const strip = document.getElementById('strip');
 const list = document.getElementById('list');
 const chordCount = document.getElementById('chordCount');
 const bpmBadge = document.getElementById('bpmBadge');
-const bpmInput = document.getElementById('bpmInput');
-// Kalau user koreksi manual angka BPM di badge, itu langsung jadi acuan
-// buat export MIDI berikutnya (lihat exportMidiBtn listener -> pakai detectedBpm).
-bpmInput.addEventListener('input', () => {
-  const v = parseFloat(bpmInput.value);
-  detectedBpm = (v && v > 0) ? v : null;
-});
 const transposeValEl = document.getElementById('transposeVal');
 
 dropzone.addEventListener('click', () => fileInput.click());
@@ -866,51 +842,14 @@ clearFileBtn.addEventListener('click', () => {
   rawChords = [];
 });
 
-// Nebak BPM dari pola durasi antar-chord yang KEDETEKSI (bukan dari onset
-// audio mentah kayak estimateBpm() di pipeline.js). Batas waktu tiap chord
-// dari hasil Viterbi itu udah akurat -- jauh lebih bisa diandelin buat nentuin
-// skala detik->beat pas export MIDI, ketimbang tebakan tempo dari energi
-// sinyal audio yang gampang salah oktaf (kedeteksi 2x atau setengah tempo
-// asli, penyebab piano roll di DAW kacau walau chord yang kedeteksi akurat).
-// Asumsi: chord biasanya ganti tiap kelipatan bulat sejumlah kecil beat
-// (paling umum 4 beat/bar).
-function inferBpmFromChords(chords) {
-  const durations = (chords || [])
-    .filter((c) => c.chord !== 'N' && c.chord !== 'X' && (c.end - c.start) > 0.15)
-    .map((c) => c.end - c.start);
-  if (durations.length < 2) return null;
-
-  // Kelompokkan durasi ke bucket 0.05s (toleran jitter kecil boundary Viterbi),
-  // cari durasi yang paling sering muncul (mode).
-  const buckets = new Map();
-  durations.forEach((d) => {
-    const key = Math.round(d / 0.05) * 0.05;
-    buckets.set(key, (buckets.get(key) || 0) + 1);
-  });
-  let modeDur = null, modeCount = 0;
-  buckets.forEach((count, key) => {
-    if (count > modeCount) { modeCount = count; modeDur = key; }
-  });
-  if (!modeDur || modeDur <= 0) return null;
-
-  // Coba beberapa asumsi jumlah beat per chord, urut dari yang paling umum.
-  // Ambil yang pertama jatuh di rentang tempo wajar (60-200bpm).
-  const beatGuesses = [4, 2, 1, 8, 3];
-  for (const beats of beatGuesses) {
-    const bpm = Math.round((60 * beats / modeDur) * 10) / 10;
-    if (bpm >= 60 && bpm <= 200) return bpm;
-  }
-  return null;
-}
-
 function setBpmBadge(bpm) {
   detectedBpm = (typeof bpm === 'number' && bpm > 0) ? bpm : null;
   if (detectedBpm === null) {
     bpmBadge.style.display = 'none';
-    bpmInput.value = '';
+    bpmBadge.innerHTML = '';
     return;
   }
-  bpmInput.value = Math.round(detectedBpm);
+  bpmBadge.innerHTML = Math.round(detectedBpm) + '<span class="bpm-unit">bpm</span>';
   bpmBadge.style.display = 'inline-flex';
 }
 
@@ -963,11 +902,7 @@ analyzeBtn.addEventListener('click', async () => {
     renderChords();
     resultBox.classList.add('show');
     renderDiagramCards(rawChords.length ? 0 : -1, false);
-    // Prioritaskan tebakan BPM dari pola durasi chord (inferBpmFromChords) di
-    // atas estimasi onset audio (bpm dari pipeline.js) -- yang pertama jauh
-    // lebih akurat buat nentuin grid MIDI karena berbasis boundary chord yang
-    // udah tervalidasi, bukan energi sinyal mentah yang gampang salah oktaf.
-    setBpmBadge(inferBpmFromChords(rawChords) || bpm);
+    setBpmBadge(bpm);
   } catch (err) {
     console.error(err);
     showStatus('error', 'Gagal menganalisis audio di browser ini.<br><br><code style="font-size:11px">' + escapeHtml(String(err && err.message || err)) + '</code>');
