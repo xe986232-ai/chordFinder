@@ -230,25 +230,41 @@
     opts = opts || {};
     const onProgress = opts.onProgress || function () {};
 
+    // --- Instrumentasi waktu per-tahap (buat diagnosa bottleneck) ---
+    const _t0 = performance.now();
+    let _tPrev = _t0;
+    const _lap = (label) => {
+      const now = performance.now();
+      console.log(`[ChordPipeline] ${label}: ${((now - _tPrev) / 1000).toFixed(2)}s (total ${((now - _t0) / 1000).toFixed(2)}s)`);
+      _tPrev = now;
+    };
+
     onProgress({ stage: 'decode' });
     const decoded = await AudioDecode.decodeAudioFileToPCM(file, DEFAULT_SR);
+    _lap('decode (audio -> PCM)');
 
     onProgress({ stage: 'cqt' });
     const { data: cqtCols, nFrames } = HybridCQT.hybridCqt(
       decoded.data, DEFAULT_SR, DEFAULT_HOP, FMIN_FSHARP0, N_BINS, BINS_PER_OCTAVE, 1
     );
+    _lap(`cqt (${nFrames} frame)`);
 
     const templateLines = await loadTemplateLines();
 
     onProgress({ stage: 'inference', modelIndex: 0, modelCount: MODEL_PATHS.length });
     const avgProbs = await runEnsembleInference(cqtCols, nFrames, onProgress);
+    _lap('inference (ensemble 5 model)');
 
     onProgress({ stage: 'decode_viterbi' });
     const chordlabRaw = await decodeViterbi(avgProbs, templateLines, DEFAULT_HOP, DEFAULT_SR);
     const chords = chordlabRaw.map(([start, end, chord]) => ({ start, end, chord }));
+    _lap('viterbi decode');
 
     onProgress({ stage: 'bpm' });
     const bpm = estimateBpm(decoded.data, DEFAULT_SR);
+    _lap('bpm estimate');
+
+    console.log(`[ChordPipeline] TOTAL: ${((performance.now() - _t0) / 1000).toFixed(2)}s untuk ${nFrames} frame (~${(nFrames * DEFAULT_HOP / DEFAULT_SR).toFixed(1)}s audio)`);
 
     onProgress({ stage: 'done' });
     return { chords, bpm };
