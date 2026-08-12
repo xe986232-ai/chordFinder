@@ -952,34 +952,75 @@ const PROGRESS_LABELS = {
   done: 'Selesai.',
 };
 
-function progressHtml(info) {
+function progressHtml(info, timingLog) {
   let label = PROGRESS_LABELS[info.stage] || info.stage;
   if (info.stage === 'load_model' || info.stage === 'inference') {
     label += ` (${info.modelIndex}/${info.modelCount})`;
   }
-  return '<div class="progress-bar"><div class="progress-fill"></div></div><div>' + escapeHtml(label) + '</div>';
+  let html = '<div class="progress-bar"><div class="progress-fill"></div></div><div>' + escapeHtml(label) + '</div>';
+  // Log waktu per-tahap ditampilkan langsung di UI (bukan cuma console.log),
+  // soalnya kalau diakses dari HP gak ada DevTools buat lihat console.
+  if (timingLog && timingLog.length) {
+    html += '<div style="margin-top:8px;font-size:11px;line-height:1.6;color:#8a93a3;text-align:left;font-family:monospace">'
+      + timingLog.map(l => escapeHtml(l)).join('<br>')
+      + '</div>';
+  }
+  return html;
 }
 
 analyzeBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
 
   analyzeBtn.disabled = true;
-  showStatus('loading', progressHtml({ stage: 'decode' }));
   resultBox.classList.remove('show');
 
   if (objectUrl) URL.revokeObjectURL(objectUrl);
   objectUrl = URL.createObjectURL(selectedFile);
   player.src = objectUrl;
 
+  // --- Timer per-tahap, dibangun dari transisi 'stage' pada onProgress ---
+  // (mendeteksi pergantian stage, bukan tiap tick modelIndex, biar 1 baris
+  // per tahap: decode, cqt, load_model, inference, decode_viterbi, bpm)
+  const timingLog = [];
+  const _t0 = performance.now();
+  let lastStage = null;
+  let lastStageStart = _t0;
+  function trackStage(info) {
+    if (info.stage !== lastStage) {
+      if (lastStage !== null) {
+        const dt = ((performance.now() - lastStageStart) / 1000).toFixed(2);
+        const doneLabel = PROGRESS_LABELS[lastStage] || lastStage;
+        timingLog.push(`✓ ${doneLabel} — ${dt}s`);
+      }
+      lastStage = info.stage;
+      lastStageStart = performance.now();
+    }
+  }
+  showStatus('loading', progressHtml({ stage: 'decode' }, timingLog));
+
   try {
     const { chords, bpm } = await ChordPipeline.analyze(selectedFile, {
-      onProgress: (info) => showStatus('loading', progressHtml(info)),
+      onProgress: (info) => {
+        trackStage(info);
+        showStatus('loading', progressHtml(info, timingLog));
+      },
     });
+    trackStage({ stage: 'done' });
+    const totalDt = ((performance.now() - _t0) / 1000).toFixed(2);
+    timingLog.push(`TOTAL: ${totalDt}s`);
 
     rawChords = chords || [];
     transposeAmount = 0;
     transposeValEl.textContent = '0';
-    hideStatus();
+    // Tampilkan ringkasan waktu proses (bisa ditutup) alih-alih langsung
+    // hideStatus() -- di HP gak ada console DevTools, jadi ini satu-satunya
+    // cara user lihat tahap mana yang paling makan waktu.
+    statusBox.className = 'status show loading';
+    statusBox.innerHTML = '<details style="text-align:left">'
+      + '<summary style="cursor:pointer;font-size:12px;color:#8a93a3">Waktu proses (' + escapeHtml(totalDt) + 's) — ketuk untuk detail</summary>'
+      + '<div style="margin-top:6px;font-size:11px;line-height:1.6;color:#8a93a3;font-family:monospace">'
+      + timingLog.map(l => escapeHtml(l)).join('<br>')
+      + '</div></details>';
     renderChords();
     resultBox.classList.add('show');
     renderDiagramCards(rawChords.length ? 0 : -1, false);
