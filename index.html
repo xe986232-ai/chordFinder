@@ -703,6 +703,23 @@
   console.log('[ort] crossOriginIsolated =', window.crossOriginIsolated,
     '| numThreads diminta =', ort.env.wasm.numThreads,
     window.crossOriginIsolated ? '(aktif, multi-thread jalan)' : '(TIDAK aktif -> tetap 1 thread, lihat README soal server dengan header COOP/COEP)');
+
+  // Tampilkan status threading langsung di UI (bukan cuma console.log) --
+  // di HP gak ada DevTools, jadi ini satu-satunya cara ngecek apakah
+  // multi-thread WASM beneran aktif di browser/device tertentu tanpa perlu
+  // colok ke komputer buat remote-debug.
+  window.addEventListener('DOMContentLoaded', () => {
+    const badge = document.getElementById('perfBadge');
+    if (!badge) return;
+    const cores = navigator.hardwareConcurrency || '?';
+    if (window.crossOriginIsolated) {
+      badge.textContent = `⚡ Multi-thread aktif (${cores} core terdeteksi)`;
+      badge.style.color = '#4ade80';
+    } else {
+      badge.textContent = `⚠️ Multi-thread TIDAK aktif — proses jalan 1 thread (lebih lambat)`;
+      badge.style.color = '#f59e0b';
+    }
+  });
 </script>
 <script src="audio-decode.js"></script>
 <script src="hybrid_cqt.js"></script>
@@ -715,6 +732,7 @@
     <div class="eyebrow"><span class="eyebrow-dot"></span>Chord recognition — by NyxVoid's</div>
     <h1>Chord finder</h1>
     <p class="tagline">Upload rekaman audio, dan sistem akan mendeteksi progresi chord-nya secara otomatis. Diproses lokal di komputer kamu sendiri.</p>
+    <p id="perfBadge" style="font-size:11px;font-family:monospace;color:#8a93a3;margin-top:6px;opacity:0.8"></p>
   </header>
 
   <div class="panel">
