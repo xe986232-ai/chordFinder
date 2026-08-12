@@ -39,19 +39,18 @@
   function getSessions(onProgress) {
     if (!sessionsPromise) {
       sessionsPromise = (async () => {
-        // Load 5 model SECARA PARALEL (bukan berurutan) -- fetch+parse tiap
-        // model independen satu sama lain, jadi bisa dijadwalin bareng.
-        // Sebelumnya loop sequential ini nyumbang ~37.5s dari total waktu
-        // (lihat hasil tes real, load_model stage), padahal network fetch
-        // 5 file kecil (~1.9MB masing-masing) harusnya bisa overlap.
-        let loaded = 0;
-        const loadOne = async (i) => {
+        // CATATAN: sempat dicoba Promise.all (load 5 model paralel) tapi
+        // di tes nyata di HP itu malah 2x LEBIH LAMBAT (37.5s -> 77.5s).
+        // Kemungkinan penyebabnya: mobile network/bandwidth yang dipakai
+        // gak cukup buat nanggung 5 koneksi HTTP bersamaan (malah
+        // kontensi/berebut bandwidth), beda kasus sama desktop dengan
+        // koneksi lebih lega. Balik ke sequential -- lebih predictable.
+        const sessions = [];
+        for (let i = 0; i < MODEL_PATHS.length; i++) {
+          if (onProgress) onProgress({ stage: 'load_model', modelIndex: i + 1, modelCount: MODEL_PATHS.length });
           const s = await ort.InferenceSession.create(MODEL_PATHS[i], { executionProviders: ['wasm'] });
-          loaded++;
-          if (onProgress) onProgress({ stage: 'load_model', modelIndex: loaded, modelCount: MODEL_PATHS.length });
-          return s;
-        };
-        const sessions = await Promise.all(MODEL_PATHS.map((_, i) => loadOne(i)));
+          sessions.push(s);
+        }
         return sessions;
       })();
     }
@@ -108,27 +107,18 @@
       }
     }
 
-    // Jalankan 5 model SECARA PARALEL (bukan bergiliran satu-satu).
-    //
-    // KENAPA INI PENTING: model ChordNet ini punya layer LSTM (bukan cuma
-    // Conv), dan LSTM itu SEKUENSIAL sepanjang waktu -- timestep ke-N harus
-    // nunggu hasil timestep ke-(N-1) selesai, jadi TIDAK BISA diparalelkan
-    // di dalam satu model biarpun numThreads di-set gede. Buat lagu ~5
-    // menit itu ~13.000 timestep berurutan per model -- ini alasan utama
-    // kenapa 1 model aja bisa makan puluhan detik walau multi-thread aktif
-    // (dikonfirmasi dari tes nyata: 8 core aktif, inferensi tetap 170s).
-    //
-    // TAPI kelima model (s0..s4) itu ENSEMBLE -- independen satu sama lain,
-    // gak saling butuh hasil. Kode SEBELUMNYA nunggu model 1 kelar total
-    // baru mulai model 2, dst (sequential await di for-loop) -- ini
-    // membuang kesempatan pakai core yang nganggur. Dengan Promise.all,
-    // ke-5 forward pass dijadwalin bareng, jadi core yang nganggur pas
-    // model A lagi nunggu 1 timestep LSTM bisa dipakai buat ngerjain
-    // timestep model B/C/D/E. Estimasi realistis: gak akan 5x lebih cepat
-    // persis (karena tetap ada kontensi di WASM), tapi seharusnya
-    // signifikan lebih cepat dari sum sekuensial.
-    let inferCompleted = 0;
-    const runOne = async (s) => {
+    // CATATAN: sempat dicoba Promise.all (5 model inferensi paralel) tapi
+    // di tes nyata itu malah 2x LEBIH LAMBAT (170.52s -> 236.87s). Dugaan:
+    // kelima model itu berebut thread pool WASM yang sama (numThreads di
+    // index.html itu SATU pool bersama, bukan per-sesi terpisah), jadi
+    // paralel malah bikin oversubscription/kontensi antar model ketimbang
+    // manfaat paralelisme -- terutama di CPU HP yang biasanya cuma punya
+    // 1-2 core "kencang" beneran (sisanya core hemat daya/efficiency core
+    // yang lambat), beda dari asumsi "8 core = 8x kerjaan bareng lancar".
+    // Balik ke sequential -- lebih predictable & terbukti lebih cepat
+    // di device nyata.
+    const allProbs = [];
+    for (let s = 0; s < sessions.length; s++) {
       const inputTensor = new ort.Tensor('float32', inputFlat, [1, nFrames, SPEC_DIM]);
       const results = await sessions[s].run({ input_cqt: inputTensor });
 
@@ -143,12 +133,9 @@
       });
 
       disposeTensor(inputTensor);
-      inferCompleted++;
-      if (onProgress) onProgress({ stage: 'inference', modelIndex: inferCompleted, modelCount: sessions.length });
-      return probs;
-    };
-
-    const allProbs = await Promise.all(sessions.map((_, s) => runOne(s)));
+      allProbs.push(probs);
+      if (onProgress) onProgress({ stage: 'inference', modelIndex: s + 1, modelCount: sessions.length });
+    }
 
     // Ensemble average per komponen (triad/bass/seventh/ninth/eleventh/thirteenth)
     const avgProbs = OUT_NAMES.map((_, i) => {
