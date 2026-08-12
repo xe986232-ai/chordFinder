@@ -35,6 +35,11 @@
 
   // ---------------- Session & worker (di-cache, di-load sekali) ----------------
 
+  // Backend aktual yang berhasil dipakai (diisi getSessions(), dibaca UI
+  // buat nampilin badge "jalan di WebGPU" vs "jalan di WASM (fallback)").
+  let activeBackend = null;
+  function getActiveBackend() { return activeBackend; }
+
   let sessionsPromise = null;
   function getSessions(onProgress) {
     if (!sessionsPromise) {
@@ -45,12 +50,35 @@
         // gak cukup buat nanggung 5 koneksi HTTP bersamaan (malah
         // kontensi/berebut bandwidth), beda kasus sama desktop dengan
         // koneksi lebih lega. Balik ke sequential -- lebih predictable.
+        //
+        // WebGPU dulu, fallback ke WASM: model file cuma ~1.9MB x5, jadi
+        // 77s load-time sebelumnya itu didominasi ort.InferenceSession.create()
+        // (parsing+compile graph) di CPU HP, bukan network fetch. WebGPU
+        // motong beban itu ke GPU, yang biasanya jauh lebih longgar dari
+        // CPU mobile (apalagi CPU HP yang cuma 1-2 core kencang beneran).
+        // Coba session pertama dulu buat nentuin backend yang kepake,
+        // sisanya ikut backend yang sama (biar konsisten, gak campur EP
+        // antar model dalam satu ensemble run).
         const sessions = [];
         for (let i = 0; i < MODEL_PATHS.length; i++) {
-          if (onProgress) onProgress({ stage: 'load_model', modelIndex: i + 1, modelCount: MODEL_PATHS.length });
-          const s = await ort.InferenceSession.create(MODEL_PATHS[i], { executionProviders: ['wasm'] });
+          if (onProgress) onProgress({ stage: 'load_model', modelIndex: i + 1, modelCount: MODEL_PATHS.length, backend: activeBackend });
+          let s;
+          if (activeBackend === null || activeBackend === 'webgpu') {
+            try {
+              s = await ort.InferenceSession.create(MODEL_PATHS[i], { executionProviders: ['webgpu'] });
+              activeBackend = 'webgpu';
+            } catch (err) {
+              console.warn('[ChordPipeline] WebGPU gagal (' + err.message + '), fallback ke WASM. ' +
+                'Kalau ini kejadian di semua device, browser/device kamu mungkin belum support WebGPU.');
+              activeBackend = 'wasm';
+            }
+          }
+          if (activeBackend === 'wasm') {
+            s = await ort.InferenceSession.create(MODEL_PATHS[i], { executionProviders: ['wasm'] });
+          }
           sessions.push(s);
         }
+        console.log('[ChordPipeline] Backend aktif: ' + activeBackend);
         return sessions;
       })();
     }
@@ -286,6 +314,6 @@
     return { chords, bpm };
   }
 
-  global.ChordPipeline = { analyze };
+  global.ChordPipeline = { analyze, getActiveBackend };
 
 })(typeof window !== 'undefined' ? window : this);

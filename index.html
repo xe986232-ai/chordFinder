@@ -687,8 +687,9 @@
 <script src="coi-serviceworker.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
 <script>
-  // Backend WASM (kompatibilitas luas). Model kecil (~1.9MB x5), cukup cepat
-  // tanpa WebGL. wasmPaths diarahkan ke CDN yang sama biar file .wasm ikut kebawa.
+  // pipeline.js sekarang coba WebGPU dulu buat inferensi (jauh lebih cepat
+  // dari WASM di CPU HP), otomatis fallback ke WASM kalau device/browser
+  // gak support. wasmPaths tetap disiapkan buat jalur fallback itu.
   ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
 
   // Multi-thread WASM: SEBELUMNYA numThreads tidak pernah di-set, jadi
@@ -1043,6 +1044,13 @@ analyzeBtn.addEventListener('click', async () => {
     stopLiveTimer();
     trackStage({ stage: 'done' });
     const totalDt = ((performance.now() - _t0) / 1000).toFixed(2);
+    const backendUsed = (window.ChordPipeline && ChordPipeline.getActiveBackend)
+      ? ChordPipeline.getActiveBackend() : null;
+    if (backendUsed) {
+      timingLog.push(backendUsed === 'webgpu'
+        ? 'Backend model: WebGPU (GPU)'
+        : 'Backend model: WASM (fallback, WebGPU tidak tersedia di device/browser ini)');
+    }
     timingLog.push(`TOTAL: ${totalDt}s`);
 
     rawChords = chords || [];
