@@ -952,14 +952,25 @@ const PROGRESS_LABELS = {
   done: 'Selesai.',
 };
 
-function progressHtml(info, timingLog) {
+let _liveTimerInterval = null;
+function stopLiveTimer() {
+  if (_liveTimerInterval) { clearInterval(_liveTimerInterval); _liveTimerInterval = null; }
+}
+
+function progressHtml(info, timingLog, currentStageStart) {
   let label = PROGRESS_LABELS[info.stage] || info.stage;
   if (info.stage === 'load_model' || info.stage === 'inference') {
     label += ` (${info.modelIndex}/${info.modelCount})`;
   }
-  let html = '<div class="progress-bar"><div class="progress-fill"></div></div><div>' + escapeHtml(label) + '</div>';
-  // Log waktu per-tahap ditampilkan langsung di UI (bukan cuma console.log),
-  // soalnya kalau diakses dari HP gak ada DevTools buat lihat console.
+  // Detik berjalan buat tahap SEKARANG (bukan yang sudah selesai) --
+  // ini penting biar kelihatan beda antara "beneran hang" vs "cuma lambat",
+  // soalnya progress bar-nya cuma animasi geser terus-terusan (indeterminate),
+  // gak nunjukin progres asli.
+  const liveSec = currentStageStart != null
+    ? ((performance.now() - currentStageStart) / 1000).toFixed(0)
+    : '0';
+  let html = '<div class="progress-bar"><div class="progress-fill"></div></div><div>'
+    + escapeHtml(label) + ' <span style="color:#5b9dff;font-family:monospace">(' + liveSec + 's)</span></div>';
   if (timingLog && timingLog.length) {
     html += '<div style="margin-top:8px;font-size:11px;line-height:1.6;color:#8a93a3;text-align:left;font-family:monospace">'
       + timingLog.map(l => escapeHtml(l)).join('<br>')
@@ -996,15 +1007,22 @@ analyzeBtn.addEventListener('click', async () => {
       lastStageStart = performance.now();
     }
   }
-  showStatus('loading', progressHtml({ stage: 'decode' }, timingLog));
+  let lastInfo = { stage: 'decode' };
+  showStatus('loading', progressHtml(lastInfo, timingLog, lastStageStart));
+  stopLiveTimer();
+  _liveTimerInterval = setInterval(() => {
+    showStatus('loading', progressHtml(lastInfo, timingLog, lastStageStart));
+  }, 1000);
 
   try {
     const { chords, bpm } = await ChordPipeline.analyze(selectedFile, {
       onProgress: (info) => {
         trackStage(info);
-        showStatus('loading', progressHtml(info, timingLog));
+        lastInfo = info;
+        showStatus('loading', progressHtml(info, timingLog, lastStageStart));
       },
     });
+    stopLiveTimer();
     trackStage({ stage: 'done' });
     const totalDt = ((performance.now() - _t0) / 1000).toFixed(2);
     timingLog.push(`TOTAL: ${totalDt}s`);
@@ -1030,6 +1048,7 @@ analyzeBtn.addEventListener('click', async () => {
     // udah tervalidasi, bukan energi sinyal mentah yang gampang salah oktaf.
     setBpmBadge(inferBpmFromChords(rawChords) || bpm);
   } catch (err) {
+    stopLiveTimer();
     console.error(err);
     showStatus('error', 'Gagal menganalisis audio di browser ini.<br><br><code style="font-size:11px">' + escapeHtml(String(err && err.message || err)) + '</code>');
   } finally {
