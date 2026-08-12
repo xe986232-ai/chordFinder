@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chord Finder — NyxVoid's</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@700;900&family=Inter:wght@500;600&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0C10;
+    --surface: #1a1a1d;
+    --surface-2: #202024;
+    --chip-bg: #26262b;
+    --chip-playing-bg: #2a2f3a;
+    --text: #ffffff;
+    --text-dim: #9b9ba3;
+    --accent: #0091ff;
+    --accent-minor: #8b5cf6;
+    --border-dark: rgba(255, 255, 255, 0.09);
+    --danger: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 16px 56px;
+  }
+
+  /* --- Header --- */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .eyebrow-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  h1 {
+    font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 26px;
+    font-weight: 900;
+    line-height: 1.15;
+    margin: 0 0 8px;
+  }
+  .tagline {
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 52ch;
+    margin: 0 0 24px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border-dark);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .h2 {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  /* --- Upload zone --- */
+  .dropzone {
+    border: 1px dashed var(--border-dark);
+    border-radius: 14px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: var(--surface-2);
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: rgba(0, 145, 255, 0.06);
+  }
+  .dropzone p { margin: 0; color: var(--text-dim); font-size: 13px; }
+  .dropzone .accent { color: var(--accent); font-weight: 500; }
+  .dropzone .formats { font-size: 11px; color: var(--text-dim); opacity: 0.7; margin-top: 8px; }
+  input[type="file"] { display: none; }
+
+  .filename-chip {
+    display: none;
+    margin-top: 12px;
+    padding: 9px 12px;
+    background: var(--chip-bg);
+    border: 1px solid var(--border-dark);
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text);
+    justify-content: space-between;
+    align-items: center;
+  }
+  .filename-chip.show { display: flex; }
+  .filename-chip button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Poppins', sans-serif;
+  }
+  .filename-chip button:hover { color: var(--danger); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-radius: 13px;
+    padding: 13px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 14px;
+    display: none;
+  }
+  .btn.show { display: flex; }
+  .btn-primary {
+    background: var(--accent);
+    color: #ffffff;
+    border: 1px solid var(--accent);
+  }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border-dark);
+    width: auto;
+    margin-top: 0;
+    padding: 8px 11px;
+    font-size: 12px;
+  }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn-secondary:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-midi {
+    display: flex;
+    width: 100%;
+    margin-top: 0;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+  }
+  .btn-midi:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-midi-prominent {
+    display: flex;
+    width: 100%;
+    margin-top: 0;
+    margin-bottom: 16px;
+    padding: 15px 16px;
+    font-size: 14.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-minor) 100%);
+    border: none;
+    box-shadow: 0 6px 20px -4px rgba(0, 145, 255, 0.55);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .btn-midi-prominent:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px -4px rgba(139, 92, 246, 0.6);
+  }
+  .btn-midi-prominent:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-midi-prominent svg { width: 17px; height: 17px; }
+  .midi-style-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .midi-style-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .midi-style-toggle { flex-wrap: wrap; }
+
+  /* --- Status / loading --- */
+  .status {
+    display: none;
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .status.show { display: block; }
+  .status.loading { background: var(--surface-2); color: var(--text-dim); }
+  .status.error { background: rgba(255,107,107,0.1); color: var(--danger); border: 1px solid rgba(255,107,107,0.3); }
+
+  .progress-bar {
+    position: relative;
+    width: 100%;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--surface);
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .progress-bar .progress-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    width: 35%;
+    border-radius: 999px;
+    background: var(--accent);
+    animation: progressSlide 1.15s ease-in-out infinite;
+  }
+  @keyframes progressSlide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(385%); }
+  }
+
+  /* --- Result area --- */
+  .result { display: none; }
+  .result.show { display: block; }
+
+  audio { width: 100%; margin-bottom: 16px; border-radius: 10px; }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-dark);
+  }
+  .transpose {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .transpose span.transpose-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .transpose button {
+    width: 26px; height: 26px;
+    border-radius: 9px;
+    border: 1px solid var(--border-dark);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+  }
+  .transpose button:hover { border-color: var(--accent); color: var(--accent); }
+  #transposeVal {
+    min-width: 22px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .chord-count { font-size: 11px; color: var(--text-dim); }
+  .controls-row { flex-wrap: wrap; row-gap: 8px; }
+  .bpm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--surface-2);
+    border: 1px solid var(--border-dark);
+    border-radius: 999px;
+    padding: 5px 10px;
+  }
+  .bpm-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .bpm-badge .bpm-unit { color: var(--text-dim); font-weight: 500; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .bpm-input {
+    width: 32px;
+    border: none;
+    background: transparent;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 0;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  .bpm-input::-webkit-outer-spin-button,
+  .bpm-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* --- Diagram chord (gitar/piano, alternating slide) --- */
+  .diagram-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .diagram-viewlabel {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+  }
+  .diagram-viewlabel.is-minor { color: var(--accent-minor); }
+  .diagram-cards {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 2px 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .diagram-cards::-webkit-scrollbar { height: 0; }
+  @keyframes dcSlideIn {
+    from { transform: translateX(22px); opacity: 0.15; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .diagram-cards.dc-slide { animation: dcSlideIn 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
+
+  .dc-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 0 0 auto;
+    border-radius: 14px;
+    border: 1px solid var(--border-dark);
+    background: var(--surface);
+    transition: border-color 0.25s, box-shadow 0.25s, opacity 0.3s, transform 0.3s;
+  }
+  .dc-card.now {
+    width: 132px;
+    padding: 16px 10px 12px;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 16px 32px rgba(0,145,255,0.28);
+  }
+  .dc-card.now.is-minor { border-color: var(--accent-minor); box-shadow: 0 0 0 1px var(--accent-minor), 0 16px 32px rgba(139,92,246,0.28); }
+  .dc-card.near {
+    width: 82px;
+    padding: 11px 6px 9px;
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  .dc-card.far {
+    width: 64px;
+    padding: 8px 4px 7px;
+    opacity: 0.28;
+    transform: scale(0.8);
+  }
+  .dc-body { min-height: 76px; display: flex; align-items: center; justify-content: center; }
+  .dc-card.now .dc-body { min-height: 118px; }
+  .dc-card.near .dc-body { min-height: 62px; }
+  .dc-card.far .dc-body { min-height: 48px; }
+  .dc-card.near .cd-guitar-svg { width: 58px; height: 68px; filter: drop-shadow(0 6px 10px rgba(0,145,255,0.25)); }
+  .dc-card.near.is-minor .cd-guitar-svg { filter: drop-shadow(0 6px 10px rgba(139,92,246,0.25)); }
+  .dc-card.far .cd-guitar-svg { width: 42px; height: 50px; filter: drop-shadow(0 4px 8px rgba(0,145,255,0.2)); }
+  .dc-card.far.is-minor .cd-guitar-svg { filter: drop-shadow(0 4px 8px rgba(139,92,246,0.2)); }
+  .dc-chordname {
+    font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 900;
+    color: var(--text);
+    margin-top: 10px;
+  }
+  .dc-card.now .dc-chordname { font-size: 22px; }
+  .dc-card.near .dc-chordname { font-size: 13px; color: var(--text-dim); margin-top: 5px; }
+  .dc-card.far .dc-chordname { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+  .dc-card.is-minor .dc-chordname { color: var(--accent-minor); }
+  .dc-card.now:not(.is-minor) .dc-chordname { color: var(--accent); }
+  .dc-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+  .dc-card.far .dc-label { font-size: 9px; margin-top: 4px; }
+  .dc-card.now .dc-label { color: var(--accent); }
+  .dc-card.now.is-minor .dc-label { color: var(--accent-minor); }
+  .dc-empty { color: var(--text-dim); font-size: 12px; }
+
+  /* --- Custom audio player --- */
+  .player-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-dark);
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+  }
+  .player-play {
+    flex: 0 0 auto;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(0,145,255,0.4);
+  }
+  .player-play:hover { filter: brightness(1.1); }
+  .player-play svg { width: 15px; height: 15px; fill: #ffffff; }
+  .player-time {
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 34px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-family: 'Inter', sans-serif;
+  }
+  .player-seek {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--seek-pct, 0%), var(--chip-bg) var(--seek-pct, 0%), var(--chip-bg) 100%);
+    cursor: pointer;
+    outline: none;
+  }
+  .player-seek.is-minor { background: linear-gradient(to right, var(--accent-minor) 0%, var(--accent-minor) var(--seek-pct, 0%), var(--chip-bg) var(--seek-pct, 0%), var(--chip-bg) 100%); }
+  .player-seek::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px; height: 11px;
+    border-radius: 7px;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 2px var(--accent);
+    cursor: pointer;
+    margin-top: -2.5px;
+  }
+  .player-seek.is-minor::-webkit-slider-thumb { box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 2px var(--accent-minor); }
+  .player-seek::-moz-range-thumb {
+    width: 24px; height: 11px;
+    border-radius: 7px;
+    background: #ffffff;
+    border: 2px solid var(--accent);
+    cursor: pointer;
+  }
+  .player-seek::-moz-range-track { height: 6px; border-radius: 999px; background: var(--chip-bg); }
+  .player-seek::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--accent); }
+
+  .diagram-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border-dark);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 14px 32px rgba(0,0,0,0.4);
+  }
+  .view-toggle {
+    display: flex;
+    gap: 6px;
+  }
+  .view-btn {
+    background: var(--chip-bg);
+    border: 1px solid var(--border-dark);
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+    padding: 6px 13px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .view-btn:hover { color: var(--text); border-color: var(--accent); }
+  .view-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+  }
+  .view-btn.active.is-minor { background: var(--accent-minor); border-color: var(--accent-minor); }
+  .view-btn.active.is-minor { background: var(--accent-minor); border-color: var(--accent-minor); }
+
+  /* fretboard (SVG) */
+  .cd-guitar-svg {
+    width: 108px; height: 128px;
+    filter: drop-shadow(0 10px 16px rgba(0,145,255,0.35));
+  }
+  .dc-card.is-minor .cd-guitar-svg { filter: drop-shadow(0 10px 16px rgba(139,92,246,0.35)); }
+  .cd-mute { fill: var(--text-dim); font-size: 11px; font-weight: 700; text-anchor: middle; }
+  .cd-nut { fill: var(--text); }
+  .cd-fretline { stroke: var(--border-dark); stroke-width: 1; }
+  .cd-string { stroke: rgba(255,255,255,0.35); stroke-width: 1; }
+  .cd-fret-label { fill: var(--text-dim); font-size: 10px; font-family: 'Poppins', sans-serif; }
+  .cd-open { fill: none; stroke: var(--text); stroke-width: 1.5; }
+  .cd-dot { fill: var(--accent); }
+  .cd-dot.is-minor { fill: var(--accent-minor); }
+  .cd-finger { fill: #ffffff; font-size: 9px; font-weight: 700; font-family: 'Poppins', sans-serif; text-anchor: middle; }
+  .cd-string-label { fill: var(--text-dim); font-size: 8px; font-family: 'Poppins', sans-serif; text-anchor: middle; }
+
+  /* mini piano (mirror .cb-key styling incl. minor tint) */
+  .cd-piano {
+    display: flex; gap: 3px;
+    filter: drop-shadow(0 12px 18px rgba(0,145,255,0.3));
+  }
+  .dc-card.is-minor .cd-piano { filter: drop-shadow(0 12px 18px rgba(139,92,246,0.3)); }
+  .cd-piano-slot { position: relative; flex: 0 0 auto; width: 26px; }
+  .cd-piano.small { gap: 2px; }
+  .cd-piano.small .cd-piano-slot { width: 15px; }
+  .cd-key {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+  .cd-key-white {
+    width: 26px; height: 88px;
+    background: #ffffff;
+    border: 1px solid #dde7f1;
+    box-shadow: rgba(15,35,55,0.15) 0px 6px 14px 0px;
+    padding-bottom: 7px;
+  }
+  .cd-key-white.is-root { background: var(--accent); border-color: var(--accent); }
+  .cd-key-white.is-root.is-minor { background: var(--accent-minor); border-color: var(--accent-minor); }
+  .cd-key-white.is-on:not(.is-root) { background: #dcecff; }
+  .cd-key-white.is-on.is-minor:not(.is-root) { background: #ece7ff; }
+  .cd-key-black {
+    position: absolute;
+    top: 0; right: -9px;
+    width: 18px; height: 52px;
+    background: #1c1c20;
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 0 0 6px 6px;
+    z-index: 1;
+    padding-bottom: 6px;
+    box-shadow: rgba(0,0,0,0.35) 0px 8px 16px 0px;
+  }
+  .cd-key-black.is-root { background: var(--accent); }
+  .cd-key-black.is-root.is-minor { background: var(--accent-minor); }
+  .cd-key-black.is-on:not(.is-root) { background: #2f4d70; }
+  .cd-key-black.is-on.is-minor:not(.is-root) { background: #2a1f47; }
+  .cd-key-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #111318;
+    margin: 0 auto;
+  }
+  .cd-key-black .cd-key-dot { background: #ffffff; }
+  .cd-piano.small .cd-key-white { width: 15px; height: 52px; border-radius: 5px; padding-bottom: 4px; box-shadow: rgba(15,35,55,0.15) 0px 4px 8px 0px; }
+  .cd-piano.small .cd-key-black { width: 10px; height: 30px; right: -6px; border-radius: 0 0 4px 4px; padding-bottom: 3px; }
+  .cd-piano.small .cd-key-dot { width: 4px; height: 4px; }
+
+  /* --- Chord timeline strip (centered sliding carousel) --- */
+  .strip-viewport {
+    position: relative;
+    height: 58px;
+    overflow: hidden;
+    margin-bottom: 6px;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14%, #000 86%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 14%, #000 86%, transparent 100%);
+  }
+  .strip-viewport::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    transform: translateX(-50%);
+    background: linear-gradient(to bottom, transparent, var(--border-dark) 25%, var(--border-dark) 75%, transparent);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translate(0, -50%);
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+
+  .chip {
+    flex: 0 0 auto;
+    min-width: 52px;
+    padding: 8px 10px;
+    text-align: center;
+    background: var(--chip-bg);
+    border: 1px solid var(--border-dark);
+    border-radius: 12px;
+    font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dim);
+    cursor: pointer;
+    opacity: 0.55;
+    transform: scale(0.86);
+    transition: box-shadow 0.3s, color 0.3s, background 0.3s, opacity 0.3s, transform 0.3s;
+  }
+  .chip:hover { color: var(--text); }
+  .chip.active {
+    box-shadow: 0 0 0 1.5px var(--accent);
+    background: var(--chip-playing-bg);
+    color: var(--accent);
+    opacity: 1;
+    transform: scale(1.14);
+    font-size: 15px;
+  }
+  .chip.active.is-minor { box-shadow: 0 0 0 1.5px var(--accent-minor); color: var(--accent-minor); }
+  .chip.neighbor { opacity: 0.8; transform: scale(0.95); }
+
+  /* --- Chord list (detailed) --- */
+  .list {
+    border-top: 1px solid var(--border-dark);
+    padding-top: 6px;
+  }
+  .list-row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 7px 6px;
+    font-size: 13px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .list-row:hover { background: rgba(255,255,255,0.03); }
+  .list-row.active { background: var(--chip-playing-bg); }
+  .list-row .time {
+    color: var(--text-dim);
+    min-width: 48px;
+    font-size: 11px;
+  }
+  .list-row .chord-name {
+    font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .list-row.active .chord-name { color: var(--accent); }
+  .list-row.active.is-minor .chord-name { color: var(--accent-minor); }
+
+  footer {
+    margin-top: 40px;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+    opacity: 0.7;
+  }
+</style>
+
+<!-- Fase 4: pipeline lokal (semua proses jalan di browser, tidak ada server) -->
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
+<script>
+  // Backend WASM (kompatibilitas luas). Model kecil (~1.9MB x5), cukup cepat
+  // tanpa WebGL. wasmPaths diarahkan ke CDN yang sama biar file .wasm ikut kebawa.
+  ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
+</script>
+<script src="audio-decode.js"></script>
+<script src="hybrid_cqt.js"></script>
+<script src="pipeline.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow"><span class="eyebrow-dot"></span>Chord recognition — by NyxVoid's</div>
+    <h1>Chord finder</h1>
+    <p class="tagline">Upload rekaman audio, dan sistem akan mendeteksi progresi chord-nya secara otomatis. Diproses lokal di komputer kamu sendiri.</p>
+  </header>
+
+  <div class="panel">
+    <div class="dropzone" id="dropzone">
+      <p><span class="accent">Klik untuk pilih file</span> atau seret ke sini</p>
+      <p class="formats">MP3, WAV, M4A, FLAC, OGG — maks 20MB</p>
+      <input type="file" id="fileInput" accept=".mp3,.wav,.m4a,.flac,.ogg">
+    </div>
+
+    <div class="filename-chip" id="filenameChip">
+      <span id="filenameText"></span>
+      <button id="clearFile">Hapus</button>
+    </div>
+
+    <button class="btn btn-primary" id="analyzeBtn">Deteksi chord</button>
+
+    <div class="status" id="statusBox"></div>
+  </div>
+
+  <div class="panel result" id="resultBox">
+    <div class="player-bar">
+      <button type="button" class="player-play" id="playBtn" aria-label="Play / Pause">
+        <svg class="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg class="icon-pause" viewBox="0 0 24 24" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      </button>
+      <span class="player-time" id="playerCurrent">0:00</span>
+      <input type="range" class="player-seek" id="playerSeek" min="0" max="0" step="0.01" value="0">
+      <span class="player-time" id="playerDuration">0:00</span>
+    </div>
+    <audio id="player"></audio>
+
+    <div class="controls-row">
+      <div class="transpose">
+        <span class="transpose-label">Transpose</span>
+        <button id="transDown">&minus;</button>
+        <span id="transposeVal">0</span>
+        <button id="transUp">+</button>
+      </div>
+      <span class="bpm-badge" id="bpmBadge" style="display:none" title="Tempo yang dipakai buat posisi bar/beat di file MIDI. Kalau piano roll di DAW masih meleset, koreksi angkanya di sini.">
+        <input type="number" id="bpmInput" class="bpm-input" min="40" max="220" step="1" />
+        <span class="bpm-unit">bpm</span>
+      </span>
+      <span class="chord-count" id="chordCount"></span>
+    </div>
+
+    <div class="midi-style-row">
+      <span class="midi-style-label">Gaya MIDI</span>
+      <div class="view-toggle midi-style-toggle">
+        <button type="button" class="view-btn active" id="btnMidiRhythm" data-style="rhythm">Ritme (Offbeat)</button>
+        <button type="button" class="view-btn" id="btnMidiBlock" data-style="block">Block (Sustain)</button>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-midi-prominent" id="exportMidiBtn">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 19h16"/></svg>
+      Unduh MIDI (.mid)
+    </button>
+
+    <div class="diagram-card">
+      <div class="diagram-head">
+        <span class="h2">Diagram chord</span>
+        <div class="view-toggle">
+          <button type="button" class="view-btn active" id="btnGuitar" data-view="guitar">Gitar</button>
+          <button type="button" class="view-btn" id="btnPiano" data-view="piano">Piano</button>
+        </div>
+      </div>
+      <div class="diagram-cards" id="diagramCardsWrap"></div>
+
+      <div class="strip-viewport" id="stripViewport">
+        <div class="strip" id="strip"></div>
+      </div>
+      <div class="list" id="list"></div>
+    </div>
+  </div>
+
+  <footer>NyxVoid's Chord Finder — diproses secara lokal, file audio tidak diunggah ke internet.</footer>
+</div>
+
+<script>
+const PITCHES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const FLAT_TO_SHARP = { "Db":"C#", "Eb":"D#", "Gb":"F#", "Ab":"G#", "Bb":"A#" };
+
+let rawChords = [];
+let detectedBpm = null;
+function syncSeekColor(isMinor) {
+  const el = document.getElementById('playerSeek');
+  if (el) el.classList.toggle('is-minor', isMinor);
+}
+let transposeAmount = 0;
+let selectedFile = null;
+let objectUrl = null;
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const filenameChip = document.getElementById('filenameChip');
+const filenameText = document.getElementById('filenameText');
+const clearFileBtn = document.getElementById('clearFile');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const exportMidiBtn = document.getElementById('exportMidiBtn');
+const btnMidiRhythm = document.getElementById('btnMidiRhythm');
+const btnMidiBlock = document.getElementById('btnMidiBlock');
+let midiExportStyle = 'rhythm'; // default: pulsa offbeat. User bisa switch ke 'block' (sustain) lewat toggle di UI.
+function setMidiExportStyle(style) {
+  midiExportStyle = style;
+  btnMidiRhythm.classList.toggle('active', style === 'rhythm');
+  btnMidiBlock.classList.toggle('active', style === 'block');
+}
+btnMidiRhythm.addEventListener('click', () => setMidiExportStyle('rhythm'));
+btnMidiBlock.addEventListener('click', () => setMidiExportStyle('block'));
+const statusBox = document.getElementById('statusBox');
+const resultBox = document.getElementById('resultBox');
+const player = document.getElementById('player');
+const stripViewport = document.getElementById('stripViewport');
+const strip = document.getElementById('strip');
+const list = document.getElementById('list');
+const chordCount = document.getElementById('chordCount');
+const bpmBadge = document.getElementById('bpmBadge');
+const bpmInput = document.getElementById('bpmInput');
+// Kalau user koreksi manual angka BPM di badge, itu langsung jadi acuan
+// buat export MIDI berikutnya (lihat exportMidiBtn listener -> pakai detectedBpm).
+bpmInput.addEventListener('input', () => {
+  const v = parseFloat(bpmInput.value);
+  detectedBpm = (v && v > 0) ? v : null;
+});
+const transposeValEl = document.getElementById('transposeVal');
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  selectedFile = file;
+  filenameText.textContent = file.name;
+  filenameChip.classList.add('show');
+  analyzeBtn.classList.add('show');
+  hideStatus();
+  resultBox.classList.remove('show');
+  playerSeek.value = 0;
+  playerSeek.max = 0;
+  playerCurrent.textContent = '0:00';
+  playerDuration.textContent = '0:00';
+  updateSeekFill();
+}
+
+clearFileBtn.addEventListener('click', () => {
+  selectedFile = null;
+  fileInput.value = '';
+  filenameChip.classList.remove('show');
+  analyzeBtn.classList.remove('show');
+  resultBox.classList.remove('show');
+  hideStatus();
+  player.pause();
+  player.removeAttribute('src');
+  playerSeek.value = 0;
+  playerSeek.max = 0;
+  playerCurrent.textContent = '0:00';
+  playerDuration.textContent = '0:00';
+  updateSeekFill();
+  renderDiagramCards(-1, false);
+  setBpmBadge(null);
+  rawChords = [];
+});
+
+// Nebak BPM dari pola durasi antar-chord yang KEDETEKSI (bukan dari onset
+// audio mentah kayak estimateBpm() di pipeline.js). Batas waktu tiap chord
+// dari hasil Viterbi itu udah akurat -- jauh lebih bisa diandelin buat nentuin
+// skala detik->beat pas export MIDI, ketimbang tebakan tempo dari energi
+// sinyal audio yang gampang salah oktaf (kedeteksi 2x atau setengah tempo
+// asli, penyebab piano roll di DAW kacau walau chord yang kedeteksi akurat).
+// Asumsi: chord biasanya ganti tiap kelipatan bulat sejumlah kecil beat
+// (paling umum 4 beat/bar).
+function inferBpmFromChords(chords) {
+  const durations = (chords || [])
+    .filter((c) => c.chord !== 'N' && c.chord !== 'X' && (c.end - c.start) > 0.15)
+    .map((c) => c.end - c.start);
+  if (durations.length < 2) return null;
+
+  // Kelompokkan durasi ke bucket 0.05s (toleran jitter kecil boundary Viterbi),
+  // cari durasi yang paling sering muncul (mode).
+  const buckets = new Map();
+  durations.forEach((d) => {
+    const key = Math.round(d / 0.05) * 0.05;
+    buckets.set(key, (buckets.get(key) || 0) + 1);
+  });
+  let modeDur = null, modeCount = 0;
+  buckets.forEach((count, key) => {
+    if (count > modeCount) { modeCount = count; modeDur = key; }
+  });
+  if (!modeDur || modeDur <= 0) return null;
+
+  // Coba beberapa asumsi jumlah beat per chord, urut dari yang paling umum.
+  // Ambil yang pertama jatuh di rentang tempo wajar (60-200bpm).
+  const beatGuesses = [4, 2, 1, 8, 3];
+  for (const beats of beatGuesses) {
+    const bpm = Math.round((60 * beats / modeDur) * 10) / 10;
+    if (bpm >= 60 && bpm <= 200) return bpm;
+  }
+  return null;
+}
+
+function setBpmBadge(bpm) {
+  detectedBpm = (typeof bpm === 'number' && bpm > 0) ? bpm : null;
+  if (detectedBpm === null) {
+    bpmBadge.style.display = 'none';
+    bpmInput.value = '';
+    return;
+  }
+  bpmInput.value = Math.round(detectedBpm);
+  bpmBadge.style.display = 'inline-flex';
+}
+
+function showStatus(kind, html) {
+  statusBox.className = 'status show ' + kind;
+  statusBox.innerHTML = html;
+}
+function hideStatus() {
+  statusBox.className = 'status';
+}
+
+const PROGRESS_LABELS = {
+  decode: 'Membaca & decode audio (Web Audio API)...',
+  cqt: 'Ekstraksi fitur CQT...',
+  load_model: 'Memuat model ONNX...',
+  inference: 'Menjalankan inferensi model (ensemble)...',
+  decode_viterbi: 'Menghaluskan hasil (Viterbi)...',
+  bpm: 'Memperkirakan tempo...',
+  done: 'Selesai.',
+};
+
+function progressHtml(info) {
+  let label = PROGRESS_LABELS[info.stage] || info.stage;
+  if (info.stage === 'load_model' || info.stage === 'inference') {
+    label += ` (${info.modelIndex}/${info.modelCount})`;
+  }
+  return '<div class="progress-bar"><div class="progress-fill"></div></div><div>' + escapeHtml(label) + '</div>';
+}
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+
+  analyzeBtn.disabled = true;
+  showStatus('loading', progressHtml({ stage: 'decode' }));
+  resultBox.classList.remove('show');
+
+  if (objectUrl) URL.revokeObjectURL(objectUrl);
+  objectUrl = URL.createObjectURL(selectedFile);
+  player.src = objectUrl;
+
+  try {
+    const { chords, bpm } = await ChordPipeline.analyze(selectedFile, {
+      onProgress: (info) => showStatus('loading', progressHtml(info)),
+    });
+
+    rawChords = chords || [];
+    transposeAmount = 0;
+    transposeValEl.textContent = '0';
+    hideStatus();
+    renderChords();
+    resultBox.classList.add('show');
+    renderDiagramCards(rawChords.length ? 0 : -1, false);
+    // Prioritaskan tebakan BPM dari pola durasi chord (inferBpmFromChords) di
+    // atas estimasi onset audio (bpm dari pipeline.js) -- yang pertama jauh
+    // lebih akurat buat nentuin grid MIDI karena berbasis boundary chord yang
+    // udah tervalidasi, bukan energi sinyal mentah yang gampang salah oktaf.
+    setBpmBadge(inferBpmFromChords(rawChords) || bpm);
+  } catch (err) {
+    console.error(err);
+    showStatus('error', 'Gagal menganalisis audio di browser ini.<br><br><code style="font-size:11px">' + escapeHtml(String(err && err.message || err)) + '</code>');
+  } finally {
+    analyzeBtn.disabled = false;
+  }
+});
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Catatan: fitur share-link (?job=<id>) dari versi Flask lama DIHAPUS di
+// versi client-side ini -- itu butuh server nyimpen hasil analisa, yang
+// justru hal yang mau dihilangkan di porting ini (lihat planning-porting-
+// chord-engine.md bagian tujuan). Semua hasil sekarang cuma ada di memori
+// tab browser masing-masing user, tidak ada link yang bisa di-share.
+
+function transposeChordName(chordName, amount) {
+  if (chordName === 'N' || chordName === 'X') return chordName;
+  const colonIdx = chordName.indexOf(':');
+  const root = colonIdx === -1 ? chordName : chordName.slice(0, colonIdx);
+  const suffix = colonIdx === -1 ? '' : chordName.slice(colonIdx);
+
+  let normalizedRoot = FLAT_TO_SHARP[root] || root;
+  let idx = PITCHES.indexOf(normalizedRoot);
+  if (idx === -1) return chordName;
+
+  idx = (idx + amount + 120) % 12;
+  return PITCHES[idx] + suffix;
+}
+
+document.getElementById('transDown').addEventListener('click', () => {
+  transposeAmount -= 1;
+  transposeValEl.textContent = transposeAmount;
+  renderChords();
+  refreshDiagramAfterTranspose();
+});
+document.getElementById('transUp').addEventListener('click', () => {
+  transposeAmount += 1;
+  transposeValEl.textContent = transposeAmount;
+  renderChords();
+  refreshDiagramAfterTranspose();
+});
+function refreshDiagramAfterTranspose() {
+  const idx = currentChordIdx >= 0 ? currentChordIdx : (rawChords.length ? 0 : -1);
+  renderDiagramCards(idx, false);
+}
+
+/* ================== Diagram chord (gitar & piano bergantian) ================== */
+
+const STRING_LABELS = ["E", "A", "D", "G", "B", "e"]; // low -> high
+// Interval semitone dari root buat tiap kategori quality (dipakai piano;
+// gitar tetap pakai 2 bentuk barre dasar: major-shape & minor-shape).
+const QUALITY_INTERVALS = {
+  maj: [0, 4, 7], min: [0, 3, 7],
+  maj7: [0, 4, 7, 11], min7: [0, 3, 7, 10], "7": [0, 4, 7, 10],
+  dim: [0, 3, 6], dim7: [0, 3, 6, 9], hdim7: [0, 3, 6, 10],
+  aug: [0, 4, 8], sus2: [0, 2, 7], sus4: [0, 5, 7],
+  "6": [0, 4, 7, 9], min6: [0, 3, 7, 9],
+  "9": [0, 4, 7, 10, 2], maj9: [0, 4, 7, 11, 2], min9: [0, 3, 7, 10, 2],
+  "5": [0, 7], "1": [0],
+  // Ditambahin: 3 quality ini ADA di submission_chord_list.txt (jadi beneran
+  // bisa dikeluarin model), tapi kemarin gak punya entry di sini -> jatuh ke
+  // fallback QUALITY_INTERVALS.maj ([0,4,7] polos), makanya nada MIDI-nya
+  // salah/keliatan "kacau" walau nama chord yang ditampilin di UI udah bener.
+  // Nilainya pitch-class mod-12 aja (gak perlu urut naik), chordToMidiNotes()
+  // yang otomatis nyusun ke oktaf naik biar gak numpuk -- pola sama kayak "9".
+  "11": [0, 4, 7, 10, 2, 5],       // 11: maj triad + b7 + 9 + 11
+  "13": [0, 4, 7, 10, 2, 5, 9],    // 13: maj triad + b7 + 9 + 11 + 13
+  "sus4(b7)": [0, 5, 7, 10],       // 7sus4: sus4 triad + b7 (BUKAN maj triad polos)
+};
+
+/* --- Format nama chord buat ditampilin (tanpa colon): F:min -> Fm, C:maj7 -> Cmaj7, dst --- */
+const QUALITY_DISPLAY = {
+  maj: '', min: 'm', maj7: 'maj7', min7: 'm7', '7': '7',
+  dim: 'dim', dim7: 'dim7', hdim7: 'm7b5', aug: 'aug',
+  sus2: 'sus2', sus4: 'sus4', '6': '6', min6: 'm6',
+  '9': '9', maj9: 'maj9', min9: 'm9', '5': '5', '1': '',
+  '11': '11', '13': '13', 'sus4(b7)': '7sus4',
+};
+function formatChordDisplay(chordName) {
+  if (!chordName || chordName === 'N') return 'N';
+  if (chordName === 'X') return 'X';
+  const bassSplit = chordName.split('/');
+  const main = bassSplit[0];
+  const bass = bassSplit[1];
+  const colonIdx = main.indexOf(':');
+  const root = colonIdx === -1 ? main : main.slice(0, colonIdx);
+  const quality = colonIdx === -1 ? 'maj' : main.slice(colonIdx + 1);
+  const suffix = quality in QUALITY_DISPLAY ? QUALITY_DISPLAY[quality] : quality;
+  let out = root + suffix;
+  if (bass) out += '/' + bass;
+  return out;
+}
+
+function parseChordForDiagram(chordName) {
+  if (!chordName || chordName === 'N' || chordName === 'X') return null;
+  const bassSplit = chordName.split('/');
+  const main = bassSplit[0];
+  const colonIdx = main.indexOf(':');
+  const rootRaw = colonIdx === -1 ? main : main.slice(0, colonIdx);
+  let quality = colonIdx === -1 ? 'maj' : main.slice(colonIdx + 1);
+  const root = FLAT_TO_SHARP[rootRaw] || rootRaw;
+  if (PITCHES.indexOf(root) === -1) return null;
+  const isMinorShape = /min|dim/.test(quality);
+  const intervals = QUALITY_INTERVALS[quality] || (isMinorShape ? QUALITY_INTERVALS.min : QUALITY_INTERVALS.maj);
+  return { root, quality, isMinorShape, intervals, label: chordName };
+}
+
+/* --- Gitar: voicing dihitung dari interval nada tiap quality chord,
+   jadi tiap jenis chord (maj, min, 7, maj7, dim, sus, dst) punya bentuk sendiri.
+   String rendah (E) dikunci di root pada baseFret (posisi movable),
+   string lain dicari fret terdekat dalam jendela 4 fret yang cocok sama nada chord-nya,
+   kalau gak ada yang cocok stringnya dimute (tanda ×). --- */
+const STRING_PITCH_CLASSES = [4, 9, 2, 7, 11, 4]; // E A D G B e (low -> high)
+
+function computeGuitarVoicing(info) {
+  const eIndex = PITCHES.indexOf("E");
+  const rootIndex = PITCHES.indexOf(info.root);
+  const baseFret = (rootIndex - eIndex + 12) % 12;
+  const chordTones = new Set(info.intervals.map((iv) => (rootIndex + iv) % 12));
+
+  const strings = STRING_PITCH_CLASSES.map((pc, i) => {
+    if (i === 0) return { fret: baseFret, muted: false }; // root selalu di string E rendah
+    for (let f = baseFret; f < baseFret + 4; f++) {
+      if (chordTones.has((pc + f) % 12)) return { fret: f, muted: false };
+    }
+    return { fret: null, muted: true };
+  });
+  return { baseFret, strings };
+}
+
+function guitarSvg(info) {
+  const { baseFret, strings } = computeGuitarVoicing(info);
+  const width = 108, height = 128, padTop = 24, padSide = 12, rows = 4;
+  const fretGap = (height - padTop - 14) / rows;
+  const stringGap = (width - padSide * 2) / (STRING_LABELS.length - 1);
+  const firstDisplayedFret = baseFret === 0 ? 1 : baseFret;
+  const x = (i) => padSide + i * stringGap;
+  const y = (row) => padTop + row * fretGap;
+  const dotClass = info.isMinorShape ? 'cd-dot is-minor' : 'cd-dot';
+  const label = formatChordDisplay(info.label);
+
+  let svg = `<svg viewBox="0 0 ${width} ${height}" class="cd-guitar-svg" role="img" aria-label="Diagram gitar ${label}">`;
+
+  if (baseFret === 0) {
+    svg += `<rect x="${padSide}" y="${padTop}" width="${width - padSide * 2}" height="3" class="cd-nut"/>`;
+  } else {
+    svg += `<text x="2" y="${padTop + fretGap * 0.5 + 4}" class="cd-fret-label">${baseFret}fr</text>`;
+  }
+  for (let r = 0; r <= rows; r++) {
+    svg += `<line x1="${padSide}" y1="${padTop + r * fretGap}" x2="${width - padSide}" y2="${padTop + r * fretGap}" class="cd-fretline"/>`;
+  }
+  STRING_LABELS.forEach((_, i) => {
+    svg += `<line x1="${x(i)}" y1="${padTop}" x2="${x(i)}" y2="${height - 14}" class="cd-string"/>`;
+  });
+  strings.forEach((s, i) => {
+    if (s.muted) {
+      svg += `<text x="${x(i)}" y="${padTop - 6}" class="cd-mute">&times;</text>`;
+    } else if (baseFret === 0 && s.fret === 0) {
+      svg += `<circle cx="${x(i)}" cy="${padTop - 9}" r="3.5" class="cd-open"/>`;
+    } else {
+      const rowFromFirst = s.fret - firstDisplayedFret;
+      if (rowFromFirst >= 0 && rowFromFirst < rows) {
+        svg += `<circle cx="${x(i)}" cy="${y(rowFromFirst) + fretGap / 2}" r="8" class="${dotClass}"/>`;
+        const offset = s.fret - baseFret;
+        const finger = offset === 0 ? 1 : Math.min(offset + 1, 4);
+        svg += `<text x="${x(i)}" y="${y(rowFromFirst) + fretGap / 2 + 3.5}" class="cd-finger">${finger}</text>`;
+      }
+    }
+    svg += `<text x="${x(i)}" y="${height - 3}" class="cd-string-label">${STRING_LABELS[i]}</text>`;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+
+/* --- Piano: mini keyboard 1 oktaf, highlight tuts sesuai interval quality --- */
+const PIANO_WHITE = ["C", "D", "E", "F", "G", "A", "B"];
+const PIANO_BLACK = ["C#", "D#", null, "F#", "G#", "A#", null];
+
+function pianoHtml(info, small) {
+  const rootIndex = PITCHES.indexOf(info.root);
+  const highlighted = new Set(info.intervals.map((iv) => PITCHES[(rootIndex + iv) % 12]));
+  const minorCls = info.isMinorShape ? ' is-minor' : '';
+  const sizeCls = small ? ' small' : '';
+  let html = `<div class="cd-piano${sizeCls}" role="img" aria-label="Diagram piano ${formatChordDisplay(info.label)}">`;
+  PIANO_WHITE.forEach((note, i) => {
+    const isOn = highlighted.has(note);
+    const isRoot = note === info.root;
+    const blackNote = PIANO_BLACK[i];
+    const blackOn = blackNote && highlighted.has(blackNote);
+    const blackIsRoot = blackNote === info.root;
+    html += `<div class="cd-piano-slot">
+      <div class="cd-key cd-key-white ${isOn ? 'is-on' : ''} ${isRoot ? 'is-root' : ''}${minorCls}">${isOn ? '<span class="cd-key-dot"></span>' : ''}</div>
+      ${blackNote ? `<div class="cd-key cd-key-black ${blackOn ? 'is-on' : ''} ${blackIsRoot ? 'is-root' : ''}${minorCls}">${blackOn ? '<span class="cd-key-dot"></span>' : ''}</div>` : ''}
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+const diagramCardsWrap = document.getElementById('diagramCardsWrap');
+const btnGuitar = document.getElementById('btnGuitar');
+const btnPiano = document.getElementById('btnPiano');
+
+let diagramView = 'guitar'; // 'guitar' | 'piano' — dipilih manual lewat tombol
+let diagramInfoCache = null;
+let currentChordIdx = -1; // index chord aktif (NOW) di rawChords
+
+function chordInfoAt(idx) {
+  if (idx < 0 || idx >= rawChords.length) return null;
+  const name = transposeChordName(rawChords[idx].chord, transposeAmount);
+  return parseChordForDiagram(name);
+}
+
+function buildDiagramCard(info, kind, label) {
+  const minorCls = info && info.isMinorShape ? ' is-minor' : '';
+  const small = kind === 'near' || kind === 'far';
+  const body = info ? (diagramView === 'guitar' ? guitarSvg(info) : pianoHtml(info, small)) : '<div class="dc-empty">–</div>';
+  const name = info ? formatChordDisplay(info.label) : '—';
+  return `<div class="dc-card ${kind}${minorCls}">
+    <div class="dc-body">${body}</div>
+    <div class="dc-chordname">${name}</div>
+    <div class="dc-label">${label}</div>
+  </div>`;
+}
+
+function renderDiagramCards(activeIdx, animate) {
+  currentChordIdx = activeIdx;
+  const prev2Info = chordInfoAt(activeIdx - 2);
+  const prev1Info = chordInfoAt(activeIdx - 1);
+  const nowInfo = chordInfoAt(activeIdx);
+  const nextInfo = chordInfoAt(activeIdx + 1);
+  const afterInfo = chordInfoAt(activeIdx + 2);
+  diagramInfoCache = nowInfo;
+  syncSeekColor(!!nowInfo && nowInfo.isMinorShape);
+
+  diagramCardsWrap.innerHTML =
+    buildDiagramCard(prev2Info, 'far', 'Prev 2') +
+    buildDiagramCard(prev1Info, 'near', 'Prev') +
+    buildDiagramCard(nowInfo, 'now', 'Now') +
+    buildDiagramCard(nextInfo, 'near', 'Next') +
+    buildDiagramCard(afterInfo, 'far', 'After');
+
+  if (animate) {
+    diagramCardsWrap.classList.remove('dc-slide');
+    void diagramCardsWrap.offsetWidth; // paksa reflow biar animasi keputar ulang
+    diagramCardsWrap.classList.add('dc-slide');
+  }
+
+  const nowCard = diagramCardsWrap.querySelector('.dc-card.now');
+  if (nowCard) nowCard.scrollIntoView({ behavior: animate ? 'smooth' : 'auto', inline: 'center', block: 'nearest' });
+}
+
+function setDiagramView(view) {
+  diagramView = view;
+  btnGuitar.classList.toggle('active', view === 'guitar');
+  btnPiano.classList.toggle('active', view === 'piano');
+  btnGuitar.classList.toggle('is-minor', view === 'guitar' && !!diagramInfoCache && diagramInfoCache.isMinorShape);
+  btnPiano.classList.toggle('is-minor', view === 'piano' && !!diagramInfoCache && diagramInfoCache.isMinorShape);
+  renderDiagramCards(currentChordIdx, false);
+}
+
+btnGuitar.addEventListener('click', () => setDiagramView('guitar'));
+btnPiano.addEventListener('click', () => setDiagramView('piano'));
+
+setDiagramView('guitar');
+renderDiagramCards(-1, false);
+
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function renderChords() {
+  strip.innerHTML = '';
+  list.innerHTML = '';
+  chordCount.textContent = rawChords.length + ' segmen chord';
+
+  rawChords.forEach((c, i) => {
+    const displayName = transposeChordName(c.chord, transposeAmount);
+    const info = parseChordForDiagram(displayName);
+    const minorCls = info && info.isMinorShape ? ' is-minor' : '';
+
+    const chip = document.createElement('div');
+    chip.className = 'chip' + minorCls;
+    chip.dataset.index = i;
+    chip.textContent = formatChordDisplay(displayName);
+    chip.addEventListener('click', () => { player.currentTime = c.start; player.play(); });
+    strip.appendChild(chip);
+
+    const row = document.createElement('div');
+    row.className = 'list-row' + minorCls;
+    row.dataset.index = i;
+    row.innerHTML = `<span class="time">${formatTime(c.start)}</span><span class="chord-name">${escapeHtml(formatChordDisplay(displayName))}</span>`;
+    row.addEventListener('click', () => { player.currentTime = c.start; player.play(); });
+    list.appendChild(row);
+  });
+
+  const restoreIdx = currentChordIdx >= 0 ? currentChordIdx : (rawChords.length ? 0 : -1);
+  if (restoreIdx >= 0) {
+    document.querySelectorAll('.chip').forEach(el => {
+      const idx = Number(el.dataset.index);
+      el.classList.toggle('active', idx === restoreIdx);
+      el.classList.toggle('neighbor', Math.abs(idx - restoreIdx) === 1);
+    });
+    document.querySelectorAll('.list-row').forEach(el => {
+      el.classList.toggle('active', Number(el.dataset.index) === restoreIdx);
+    });
+    requestAnimationFrame(() => centerActiveChip(restoreIdx, false));
+    lastCenteredIdx = restoreIdx;
+  }
+}
+
+function centerActiveChip(activeIdx, animate) {
+  const activeChip = strip.querySelector(`.chip[data-index="${activeIdx}"]`);
+  if (!activeChip || !stripViewport) return;
+  const vpWidth = stripViewport.clientWidth;
+  const chipCenter = activeChip.offsetLeft + activeChip.offsetWidth / 2;
+  const targetX = vpWidth / 2 - chipCenter;
+  strip.style.transition = animate ? '' : 'none';
+  strip.style.transform = `translate(${targetX}px, -50%)`;
+  if (!animate) {
+    void strip.offsetWidth; // reflow biar transition kepasang ulang lain kali
+    strip.style.transition = '';
+  }
+}
+let lastCenteredIdx = -1;
+
+player.addEventListener('timeupdate', () => {
+  const t = player.currentTime;
+  let activeIdx = -1;
+  for (let i = 0; i < rawChords.length; i++) {
+    if (t >= rawChords[i].start && t < rawChords[i].end) { activeIdx = i; break; }
+  }
+  document.querySelectorAll('.chip').forEach(el => {
+    const idx = Number(el.dataset.index);
+    el.classList.toggle('active', idx === activeIdx);
+    el.classList.toggle('neighbor', Math.abs(idx - activeIdx) === 1);
+  });
+  document.querySelectorAll('.list-row').forEach(el => {
+    el.classList.toggle('active', Number(el.dataset.index) === activeIdx);
+  });
+  if (activeIdx >= 0 && activeIdx !== lastCenteredIdx) {
+    centerActiveChip(activeIdx, true);
+    lastCenteredIdx = activeIdx;
+  }
+  if (activeIdx !== currentChordIdx) {
+    renderDiagramCards(activeIdx, true);
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (lastCenteredIdx >= 0) centerActiveChip(lastCenteredIdx, false);
+});
+
+/* ================== Custom audio player ================== */
+const playBtn = document.getElementById('playBtn');
+const iconPlay = playBtn.querySelector('.icon-play');
+const iconPause = playBtn.querySelector('.icon-pause');
+const playerSeek = document.getElementById('playerSeek');
+const playerCurrent = document.getElementById('playerCurrent');
+const playerDuration = document.getElementById('playerDuration');
+let seekDragging = false;
+
+playBtn.addEventListener('click', () => {
+  if (!player.src) return;
+  if (player.paused) player.play(); else player.pause();
+});
+player.addEventListener('play', () => { iconPlay.style.display = 'none'; iconPause.style.display = 'block'; });
+player.addEventListener('pause', () => { iconPlay.style.display = 'block'; iconPause.style.display = 'none'; });
+player.addEventListener('loadedmetadata', () => {
+  playerSeek.max = player.duration || 0;
+  playerDuration.textContent = formatTime(player.duration || 0);
+});
+player.addEventListener('timeupdate', () => {
+  if (!seekDragging) {
+    playerSeek.value = player.currentTime;
+    updateSeekFill();
+  }
+  playerCurrent.textContent = formatTime(player.currentTime);
+});
+playerSeek.addEventListener('input', () => {
+  seekDragging = true;
+  updateSeekFill();
+  playerCurrent.textContent = formatTime(Number(playerSeek.value));
+});
+playerSeek.addEventListener('change', () => {
+  player.currentTime = Number(playerSeek.value);
+  seekDragging = false;
+});
+function updateSeekFill() {
+  const max = Number(playerSeek.max) || 1;
+  const pct = max ? (Number(playerSeek.value) / max * 100) : 0;
+  playerSeek.style.setProperty('--seek-pct', pct + '%');
+}
+
+/* ================== Export MIDI ================== */
+/* Bikin file .mid dari rawChords: tiap segmen chord jadi satu blok
+   note-on/note-off (voicing dari QUALITY_INTERVALS), lengkap dengan
+   marker teks nama chord biar keliatan di DAW/piano roll. */
+
+const MIDI_PPQ = 480;                    // ticks per quarter note
+const MIDI_DEFAULT_TEMPO_USEC = 500000;  // fallback 120 bpm kalau BPM gak kedeteksi
+const MIDI_BASE_OCTAVE_MIDI = 60;        // C4 = root chord duduk mulai dari sini ke atas
+
+function writeVarLen(value) {
+  let buffer = value & 0x7f;
+  const bytes = [];
+  while ((value >>= 7)) {
+    buffer <<= 8;
+    buffer |= ((value & 0x7f) | 0x80);
+  }
+  while (true) {
+    bytes.push(buffer & 0xff);
+    if (buffer & 0x80) buffer >>= 8;
+    else break;
+  }
+  return bytes;
+}
+
+function chordToMidiNotes(info) {
+  // Susun interval jadi menaik (kalau ada lompatan turun, naikin satu oktaf)
+  // biar voicing-nya gak numpuk di pitch class yang sama.
+  const notes = [];
+  let prevActual = -1;
+  info.intervals.forEach((iv) => {
+    let actual = iv;
+    while (actual <= prevActual) actual += 12;
+    prevActual = actual;
+    notes.push(MIDI_BASE_OCTAVE_MIDI + PITCHES.indexOf(info.root) + actual);
+  });
+  return notes;
+}
+
+const MIDI_GRID_DIVISION = 4;      // kuantisasi ke grid 1/16 note (4 subdivisi per ketuk)
+const MIDI_RHYTHM_OFFSET_BEATS = 0.5;   // pola offbeat: nyala di "and" tiap ketuk (kayak RYTHM.mid)
+const MIDI_RHYTHM_GATE_BEATS = 0.125;   // panjang tiap pukulan offbeat = 1/8 ketuk (staccato)
+
+// Bulatkan posisi (dalam satuan "beat") ke grid terdekat biar pas nempel garis piano-roll
+// di DAW manapun -- ini yang bikin timing gak lagi "kadang pas kadang delay", karena semua
+// hasil akhirnya kelipatan bersih dari 1 grid unit, bukan sisa pembagian desimal dari detik asli.
+function quantizeBeats(beats, division) {
+  return Math.round(beats * division) / division;
+}
+
+function buildMidiFile(chords, transpose, bpm, style) {
+  const events = []; // { tick, bytes: [...] }, diurutkan nanti
+  style = style || 'block';
+
+  const effectiveBpm = bpm && bpm > 0 ? bpm : 120;
+  const tempoUsec = Math.round(60000000 / effectiveBpm);
+  const secPerBeat = 60 / effectiveBpm;
+
+  const pushEvent = (tick, bytes) => events.push({ tick, bytes });
+  const beatsToTicks = (beats) => Math.round(beats * MIDI_PPQ);
+
+  // Kalau lagu diawali segmen "N" (belum ada chord/intro diam), potong bagian itu
+  // biar chord pertama yang beneran kedeteksi jatuh persis di awal file MIDI (tick 0),
+  // bukan nongol telat ngikutin posisi asli di lagu.
+  let leadTrim = 0;
+  for (const c of chords) {
+    const info = parseChordForDiagram(transposeChordName(c.chord, transpose));
+    if (info) { leadTrim = c.start; break; }
+  }
+
+  // Meta: nama track + tempo (dipakai juga buat konversi detik -> beat -> tick, dan tempo ini
+  // yang bakal dibaca DAW buat ngegambar grid piano-roll-nya)
+  pushEvent(0, [0xFF, 0x03, ...textMetaBytes('Chord Finder')]);
+  pushEvent(0, [0xFF, 0x51, 0x03, (tempoUsec >> 16) & 0xff, (tempoUsec >> 8) & 0xff, tempoUsec & 0xff]);
+
+  chords.forEach((c) => {
+    const displayName = transposeChordName(c.chord, transpose);
+    const info = parseChordForDiagram(displayName);
+    if (!info) return; // "N" / "X" -> jeda, gak ada nada
+
+    // Detik asli -> posisi dalam "beat" -> kuantisasi ke grid -> tick.
+    // Semua boundary jadi kelipatan bersih grid, jadi pasti nempel di DAW.
+    const rawStartBeat = Math.max(0, c.start - leadTrim) / secPerBeat;
+    const rawEndBeat = Math.max(0, c.end - leadTrim) / secPerBeat;
+    let startBeat = quantizeBeats(rawStartBeat, MIDI_GRID_DIVISION);
+    let endBeat = quantizeBeats(rawEndBeat, MIDI_GRID_DIVISION);
+    if (endBeat <= startBeat) endBeat = startBeat + 1 / MIDI_GRID_DIVISION;
+
+    const notes = chordToMidiNotes(info);
+    const label = formatChordDisplay(displayName);
+    pushEvent(beatsToTicks(startBeat), [0xFF, 0x06, ...textMetaBytes(label)]); // marker nama chord
+
+    if (style === 'rhythm') {
+      // Gaya "Ritme (Offbeat)" -> contoh RYTHM.mid: chord dipukul ulang tiap ketuk,
+      // jatuh di "and"-nya (setengah ketuk sebelum beat berikutnya), staccato pendek.
+      let hitBeat = Math.floor(startBeat) + MIDI_RHYTHM_OFFSET_BEATS;
+      if (hitBeat < startBeat) hitBeat += 1;
+      let hitCount = 0;
+      while (hitBeat < endBeat) {
+        const hitStartTick = beatsToTicks(hitBeat);
+        const hitEndTick = Math.min(beatsToTicks(endBeat), beatsToTicks(hitBeat + MIDI_RHYTHM_GATE_BEATS));
+        notes.forEach((n) => pushEvent(hitStartTick, [0x90, n & 0x7f, 100]));
+        notes.forEach((n) => pushEvent(Math.max(hitStartTick + 1, hitEndTick), [0x80, n & 0x7f, 0]));
+        hitBeat += 1;
+        hitCount++;
+      }
+      // Fallback: kalau segmen chord-nya lebih pendek dari 1 offbeat hit (jarang, tapi bisa
+      // kejadian di chord super cepat), tetep bunyiin satu sustain pendek biar gak hilang.
+      if (hitCount === 0) {
+        const startTick = beatsToTicks(startBeat);
+        const endTick = beatsToTicks(endBeat);
+        notes.forEach((n) => pushEvent(startTick, [0x90, n & 0x7f, 100]));
+        notes.forEach((n) => pushEvent(endTick, [0x80, n & 0x7f, 0]));
+      }
+    } else {
+      // Gaya "Block (Sustain)" -> contoh CHORD.mid: satu blok nada nyala penuh
+      // sepanjang durasi chord, langsung nyambung ke chord berikutnya.
+      const startTick = beatsToTicks(startBeat);
+      const endTick = beatsToTicks(endBeat);
+      notes.forEach((n) => pushEvent(startTick, [0x90, n & 0x7f, 96]));       // note on
+      notes.forEach((n) => pushEvent(endTick, [0x80, n & 0x7f, 0]));          // note off
+    }
+  });
+
+  // Urutkan: berdasarkan tick, note-off didahulukan sebelum note-on di tick yang sama
+  events.sort((a, b) => {
+    if (a.tick !== b.tick) return a.tick - b.tick;
+    const rank = (bytes) => (bytes[0] === 0x80 ? 0 : bytes[0] === 0xFF && bytes[1] === 0x06 ? 1 : 2);
+    return rank(a.bytes) - rank(b.bytes);
+  });
+
+  const lastTick = events.length ? events[events.length - 1].tick : 0;
+
+  const trackBytes = [];
+  let prevTick = 0;
+  events.forEach((ev) => {
+    trackBytes.push(...writeVarLen(ev.tick - prevTick));
+    trackBytes.push(...ev.bytes);
+    prevTick = ev.tick;
+  });
+  trackBytes.push(...writeVarLen(Math.max(0, lastTick - prevTick)));
+  trackBytes.push(0xFF, 0x2F, 0x00); // end of track
+
+  const header = [
+    0x4D, 0x54, 0x68, 0x64,             // "MThd"
+    0x00, 0x00, 0x00, 0x06,             // header length = 6
+    0x00, 0x00,                          // format 0
+    0x00, 0x01,                          // ntrks = 1
+    (MIDI_PPQ >> 8) & 0xff, MIDI_PPQ & 0xff,
+  ];
+  const trackHeader = [
+    0x4D, 0x54, 0x72, 0x6B,             // "MTrk"
+    (trackBytes.length >> 24) & 0xff,
+    (trackBytes.length >> 16) & 0xff,
+    (trackBytes.length >> 8) & 0xff,
+    trackBytes.length & 0xff,
+  ];
+
+  return new Uint8Array([...header, ...trackHeader, ...trackBytes]);
+}
+
+function textMetaBytes(str) {
+  const strBytes = Array.from(str).map((ch) => ch.charCodeAt(0) & 0xff);
+  return [...writeVarLen(strBytes.length), ...strBytes];
+}
+
+function suggestMidiFilename() {
+  const base = selectedFile && selectedFile.name ? selectedFile.name.replace(/\.[^.]+$/, '') : 'chords';
+  return base + '.mid';
+}
+
+exportMidiBtn.addEventListener('click', () => {
+  if (!rawChords.length) return;
+  const bytes = buildMidiFile(rawChords, transposeAmount, detectedBpm, midiExportStyle);
+  const blob = new Blob([bytes], { type: 'audio/midi' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = suggestMidiFilename();
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+</script>
+</body>
+</html>
