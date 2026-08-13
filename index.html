@@ -1047,9 +1047,12 @@ analyzeBtn.addEventListener('click', async () => {
     const backendUsed = (window.ChordPipeline && ChordPipeline.getActiveBackend)
       ? ChordPipeline.getActiveBackend() : null;
     if (backendUsed) {
-      timingLog.push(backendUsed === 'webgpu'
-        ? 'Backend model: WebGPU (GPU)'
-        : 'Backend model: WASM (fallback, WebGPU tidak tersedia di device/browser ini)');
+      if (backendUsed === 'webgpu') {
+        timingLog.push('Backend model: WebGPU (GPU)');
+      } else {
+        const wgErr = (window.ChordPipeline && ChordPipeline.getWebgpuError) ? ChordPipeline.getWebgpuError() : null;
+        timingLog.push('Backend model: WASM (fallback)' + (wgErr ? ' — error WebGPU: ' + wgErr : ''));
+      }
     }
     timingLog.push(`TOTAL: ${totalDt}s`);
 

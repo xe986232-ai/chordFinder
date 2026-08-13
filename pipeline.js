@@ -40,6 +40,12 @@
   let activeBackend = null;
   function getActiveBackend() { return activeBackend; }
 
+  // Pesan error asli dari percobaan WebGPU yang gagal (kalau ada), biar
+  // kelihatan di UI -- di HP gak ada DevTools, jadi console.warn doang
+  // gak kebaca. Lihat catatan Fase 4 soal ini.
+  let webgpuError = null;
+  function getWebgpuError() { return webgpuError; }
+
   let sessionsPromise = null;
   function getSessions(onProgress) {
     if (!sessionsPromise) {
@@ -68,7 +74,8 @@
               s = await ort.InferenceSession.create(MODEL_PATHS[i], { executionProviders: ['webgpu'] });
               activeBackend = 'webgpu';
             } catch (err) {
-              console.warn('[ChordPipeline] WebGPU gagal (' + err.message + '), fallback ke WASM. ' +
+              webgpuError = err && err.message ? err.message : String(err);
+              console.warn('[ChordPipeline] WebGPU gagal (' + webgpuError + '), fallback ke WASM. ' +
                 'Kalau ini kejadian di semua device, browser/device kamu mungkin belum support WebGPU.');
               activeBackend = 'wasm';
             }
@@ -314,6 +321,6 @@
     return { chords, bpm };
   }
 
-  global.ChordPipeline = { analyze, getActiveBackend };
+  global.ChordPipeline = { analyze, getActiveBackend, getWebgpuError };
 
 })(typeof window !== 'undefined' ? window : this);
