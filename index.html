@@ -678,14 +678,14 @@
 </style>
 
 <!-- Fase 4: pipeline lokal (semua proses jalan di browser, tidak ada server) -->
-<!-- WAJIB paling atas / sebelum ort.min.js: GitHub Pages tidak bisa nyet header
+<!-- WAJIB paling atas / sebelum ort.webgpu.min.js: GitHub Pages tidak bisa nyet header
      COOP/COEP sendiri (gak ada _headers/vercel.json di GH Pages), jadi kita
      "nyuntik" header itu lewat Service Worker. Tanpa ini, onnxruntime-web
      diam-diam cuma jalan 1 thread WASM walau numThreads di-set manual --
      ini penyebab utama lagu panjang lambat banget. Halaman akan reload
      sendiri sekali di load pertama (normal, itu cara SW ini aktif). -->
 <script src="coi-serviceworker.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.webgpu.min.js"></script>
 <script>
   // pipeline.js sekarang coba WebGPU dulu buat inferensi (jauh lebih cepat
   // dari WASM di CPU HP), otomatis fallback ke WASM kalau device/browser
