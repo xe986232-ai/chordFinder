@@ -40,6 +40,21 @@
   let activeBackend = null;
   function getActiveBackend() { return activeBackend; }
 
+  // Batas panjang sekuens (jumlah frame CQT) buat nyoba WebGPU. Di atas ini,
+  // WebGPU EP onnxruntime-web kena stall/nge-hang parah di GPU mobile (Mali)
+  // -- ditemukan pas tes lagu penuh (~4 menit, ribuan frame): inferensi model
+  // pertama nggak selesai-selesai (500+ detik, dibanding cuma ~15s buat 5
+  // model sekaligus di klip pendek/~800 frame). Dugaan: tensor/activation
+  // buffer melebihi maxStorageBufferBindingSize (256MB di GPU Mali yang
+  // dites) atau overhead dispatch GPU per-op meledak di sequence length
+  // segede itu -- BUKAN sekadar "lebih lambat", tapi macet total.
+  // ~1800 frame ~ 21 detik audio di SR=22050/hop=512 -- threshold aman
+  // yang dites lolos (817 frame, 19 detik) dikali margin, sampai ada
+  // investigasi lebih lanjut buat naikin batas ini (misal chunking
+  // sekuens per-window di GPU, yang butuh divalidasi ulang ke baseline
+  // biar akurasi gak berubah).
+  const WEBGPU_MAX_FRAMES = 1800;
+
   // Pesan error asli dari percobaan WebGPU yang gagal (kalau ada), biar
   // kelihatan di UI -- di HP gak ada DevTools, jadi console.warn doang
   // gak kebaca. Lihat catatan Fase 4 soal ini.
@@ -47,7 +62,7 @@
   function getWebgpuError() { return webgpuError; }
 
   let sessionsPromise = null;
-  function getSessions(onProgress) {
+  function getSessions(onProgress, nFrames) {
     if (!sessionsPromise) {
       sessionsPromise = (async () => {
         // CATATAN: sempat dicoba Promise.all (load 5 model paralel) tapi
@@ -57,14 +72,21 @@
         // kontensi/berebut bandwidth), beda kasus sama desktop dengan
         // koneksi lebih lega. Balik ke sequential -- lebih predictable.
         //
-        // WebGPU dulu, fallback ke WASM: model file cuma ~1.9MB x5, jadi
-        // 77s load-time sebelumnya itu didominasi ort.InferenceSession.create()
-        // (parsing+compile graph) di CPU HP, bukan network fetch. WebGPU
-        // motong beban itu ke GPU, yang biasanya jauh lebih longgar dari
-        // CPU mobile (apalagi CPU HP yang cuma 1-2 core kencang beneran).
+        // WebGPU dulu (KALAU sekuens pendek), fallback ke WASM: model file
+        // cuma ~1.9MB x5, jadi 77s load-time sebelumnya itu didominasi
+        // ort.InferenceSession.create() (parsing+compile graph) di CPU HP,
+        // bukan network fetch. WebGPU motong beban itu ke GPU -- tapi CUMA
+        // dicoba kalau nFrames di bawah WEBGPU_MAX_FRAMES, karena di atas
+        // itu WebGPU malah macet total (lihat catatan WEBGPU_MAX_FRAMES).
         // Coba session pertama dulu buat nentuin backend yang kepake,
         // sisanya ikut backend yang sama (biar konsisten, gak campur EP
         // antar model dalam satu ensemble run).
+        const trySkipWebgpu = typeof nFrames === 'number' && nFrames > WEBGPU_MAX_FRAMES;
+        if (trySkipWebgpu) {
+          activeBackend = 'wasm';
+          webgpuError = `dilewati (sekuens ${nFrames} frame > batas aman ${WEBGPU_MAX_FRAMES} frame, WebGPU EP bisa macet di sekuens panjang)`;
+          console.warn('[ChordPipeline] ' + webgpuError);
+        }
         const sessions = [];
         for (let i = 0; i < MODEL_PATHS.length; i++) {
           if (onProgress) onProgress({ stage: 'load_model', modelIndex: i + 1, modelCount: MODEL_PATHS.length, backend: activeBackend });
@@ -128,7 +150,7 @@
   // ---------------- Inference ensemble 5 model ----------------
 
   async function runEnsembleInference(cqtCols, nFrames, onProgress) {
-    const sessions = await getSessions(onProgress);
+    const sessions = await getSessions(onProgress, nFrames);
 
     // cqtCols: array[nBins] of Float64Array[nFrames] (bin-major, output
     // hybridCqt). Susun ulang -> (time, bin) row-major Float32Array, slice

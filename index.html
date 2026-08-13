@@ -1051,7 +1051,7 @@ analyzeBtn.addEventListener('click', async () => {
         timingLog.push('Backend model: WebGPU (GPU)');
       } else {
         const wgErr = (window.ChordPipeline && ChordPipeline.getWebgpuError) ? ChordPipeline.getWebgpuError() : null;
-        timingLog.push('Backend model: WASM (fallback)' + (wgErr ? ' — error WebGPU: ' + wgErr : ''));
+        timingLog.push('Backend model: WASM' + (wgErr ? ' (' + wgErr + ')' : ' (fallback)'));
       }
     }
     timingLog.push(`TOTAL: ${totalDt}s`);
